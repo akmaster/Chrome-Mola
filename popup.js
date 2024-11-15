@@ -73,119 +73,158 @@ function updateStatisticsDisplay(period = 'daily') {
     });
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Mevcut ayarları yükle
-    chrome.storage.sync.get({
-        workDuration: 0.5,
-        breakDuration: 20,
-        enforceWait: false,
-        urgentDelay: 5,
-        playMusic: false,
-        pauseVideos: true
-    }, function(items) {
-        document.getElementById('workDuration').value = items.workDuration;
-        document.getElementById('breakDuration').value = items.breakDuration;
-        document.getElementById('enforceWait').checked = items.enforceWait;
-        document.getElementById('urgentDelay').value = items.urgentDelay;
-        document.getElementById('urgentDelayValue').textContent = `${items.urgentDelay} saniye`;
-        document.getElementById('waitTimeContainer').style.display = 
-            items.enforceWait ? 'block' : 'none';
-        document.getElementById('playMusic').checked = items.playMusic;
-        document.getElementById('pauseVideos').checked = items.pauseVideos;
-    });
-
-    // Önerileri oluştur
-    const recommendationList = document.querySelector('.recommendation-list');
-    recommendationList.innerHTML = '';
-
-    Object.entries(recommendations).forEach(([key, rec]) => {
-        const div = document.createElement('div');
-        div.className = 'recommendation-item';
-        div.dataset.type = key;
-        div.innerHTML = `
-            <span class="method">${rec.name}:</span>
-            <span class="timing">${rec.description}</span>
-        `;
-
-        div.dataset.tooltip = `Çalışma: ${rec.workMinutes} dk, Mola: ${rec.breakSeconds} ${rec.breakType}`;
-        recommendationList.appendChild(div);
-    });
-
-    // Zorunlu Bekleme checkbox olayı
-    document.getElementById('enforceWait').addEventListener('change', function() {
-        document.getElementById('waitTimeContainer').style.display = 
-            this.checked ? 'block' : 'none';
-    });
-
-    // Slider değişim olayı
-    document.getElementById('urgentDelay').addEventListener('input', function() {
-        document.getElementById('urgentDelayValue').textContent = `${this.value} saniye`;
-    });
-
-    // Tavsiye tıklama işlevselliği
-    document.querySelectorAll('.recommendation-item').forEach(item => {
-        item.addEventListener('click', function() {
-            const recType = this.dataset.type;
-            const rec = recommendations[recType];
-            
-            if (rec) {
-                document.getElementById('workDuration').value = rec.workMinutes;
-                document.getElementById('breakDuration').value = rec.breakSeconds;
-                document.getElementById('saveSettings').click();
+function saveSettings(settings) {
+    return new Promise((resolve, reject) => {
+        chrome.storage.sync.set({ settings }, () => {
+            if (chrome.runtime.lastError) {
+                reject(chrome.runtime.lastError);
+            } else {
+                resolve();
             }
         });
     });
+}
 
-    // Period butonlarına tıklama olayı
-    document.querySelectorAll('.period-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            updateStatisticsDisplay(this.dataset.period);
+function loadSettings() {
+    return new Promise((resolve) => {
+        chrome.storage.sync.get({
+            settings: {
+                workDuration: 0.5,
+                breakDuration: 20,
+                enforceWait: false,
+                urgentDelay: 5,
+                playMusic: false,
+                pauseVideos: true
+            }
+        }, function(result) {
+            resolve(result.settings);
         });
     });
+}
 
-    // İstatistikleri göster
-    updateStatisticsDisplay('daily');
+function updateUIWithSettings(settings) {
+    document.getElementById('workDuration').value = settings.workDuration;
+    document.getElementById('breakDuration').value = settings.breakDuration;
+    document.getElementById('enforceWait').checked = settings.enforceWait;
+    document.getElementById('urgentDelay').value = settings.urgentDelay;
+    document.getElementById('urgentDelayValue').textContent = `${settings.urgentDelay} saniye`;
+    document.getElementById('waitTimeContainer').style.display = 
+        settings.enforceWait ? 'block' : 'none';
+    document.getElementById('playMusic').checked = settings.playMusic;
+    document.getElementById('pauseVideos').checked = settings.pauseVideos;
+}
 
-    // Kaydet butonu işlevselliği
-    document.getElementById('saveSettings').addEventListener('click', function() {
-        const workDuration = parseFloat(document.getElementById('workDuration').value);
-        const breakDuration = parseInt(document.getElementById('breakDuration').value);
-        const enforceWait = document.getElementById('enforceWait').checked;
-        const urgentDelay = parseInt(document.getElementById('urgentDelay').value);
-        const playMusic = document.getElementById('playMusic').checked;
-        const pauseVideos = document.getElementById('pauseVideos').checked;
+function showSaveAnimation(button) {
+    const originalText = button.textContent;
+    const originalColor = button.style.backgroundColor;
+    
+    button.textContent = 'Kaydedildi!';
+    button.style.backgroundColor = '#2d6a4f';
+    
+    setTimeout(() => {
+        button.textContent = originalText;
+        button.style.backgroundColor = originalColor;
+    }, 1500);
+}
 
-        if (isNaN(workDuration) || isNaN(breakDuration) || 
-            workDuration < 0.5 || breakDuration < 10 || 
-            (enforceWait && (isNaN(urgentDelay) || urgentDelay < 1 || urgentDelay > 60))) {
-            alert('Lütfen geçerli değerler girin!\nÇalışma süresi en az 0.5 dakika olmalıdır.');
-            return;
-        }
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const settings = await loadSettings();
+        updateUIWithSettings(settings);
+        
+        // Önerileri oluştur
+        const recommendationList = document.querySelector('.recommendation-list');
+        recommendationList.innerHTML = '';
 
-        const alarmDuration = Math.max(0.5, workDuration);
+        Object.entries(recommendations).forEach(([key, rec]) => {
+            const div = document.createElement('div');
+            div.className = 'recommendation-item';
+            div.dataset.type = key;
+            div.innerHTML = `
+                <span class="method">${rec.name}:</span>
+                <span class="timing">${rec.description}</span>
+            `;
 
-        chrome.storage.sync.set({
-            workDuration: workDuration,
-            breakDuration: breakDuration,
-            enforceWait: enforceWait,
-            urgentDelay: urgentDelay,
-            playMusic: playMusic,
-            pauseVideos: pauseVideos
-        }, function() {
-            chrome.runtime.sendMessage({
-                action: "updateAlarm",
-                workDuration: alarmDuration
+            div.dataset.tooltip = `Çalışma: ${rec.workMinutes} dk, Mola: ${rec.breakSeconds} ${rec.breakType}`;
+            recommendationList.appendChild(div);
+        });
+
+        // Event listeners
+        document.getElementById('enforceWait').addEventListener('change', function() {
+            document.getElementById('waitTimeContainer').style.display = 
+                this.checked ? 'block' : 'none';
+        });
+
+        document.getElementById('urgentDelay').addEventListener('input', function() {
+            document.getElementById('urgentDelayValue').textContent = `${this.value} saniye`;
+        });
+
+        // Tavsiye tıklama işlevselliği
+        document.querySelectorAll('.recommendation-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const recType = this.dataset.type;
+                const rec = recommendations[recType];
+                
+                if (rec) {
+                    document.getElementById('workDuration').value = rec.workMinutes;
+                    document.getElementById('breakDuration').value = rec.breakSeconds;
+                    document.getElementById('saveSettings').click();
+                }
             });
-
-            const button = document.getElementById('saveSettings');
-            button.textContent = 'Kaydedildi!';
-            button.style.backgroundColor = '#2d6a4f';
-            setTimeout(() => {
-                button.textContent = 'Kaydet';
-                button.style.backgroundColor = '#4ecca3';
-            }, 1500);
         });
-    });
+
+        // Period butonları
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                updateStatisticsDisplay(this.dataset.period);
+            });
+        });
+
+        // İstatistikleri göster
+        updateStatisticsDisplay('daily');
+
+        // Kaydet butonu
+        document.getElementById('saveSettings').addEventListener('click', async function() {
+            const workDuration = parseFloat(document.getElementById('workDuration').value);
+            const breakDuration = parseInt(document.getElementById('breakDuration').value);
+            const enforceWait = document.getElementById('enforceWait').checked;
+            const urgentDelay = parseInt(document.getElementById('urgentDelay').value);
+            const playMusic = document.getElementById('playMusic').checked;
+            const pauseVideos = document.getElementById('pauseVideos').checked;
+
+            if (isNaN(workDuration) || isNaN(breakDuration) || 
+                workDuration < 0.5 || breakDuration < 10 || 
+                (enforceWait && (isNaN(urgentDelay) || urgentDelay < 1 || urgentDelay > 60))) {
+                alert('Lütfen geçerli değerler girin!\nÇalışma süresi en az 0.5 dakika olmalıdır.');
+                return;
+            }
+
+            try {
+                await saveSettings({
+                    workDuration,
+                    breakDuration,
+                    enforceWait,
+                    urgentDelay,
+                    playMusic,
+                    pauseVideos
+                });
+
+                chrome.runtime.sendMessage({
+                    action: "updateAlarm",
+                    workDuration: workDuration
+                });
+
+                showSaveAnimation(this);
+            } catch (error) {
+                alert('Ayarlar kaydedilirken bir hata oluştu.');
+                console.error('Settings save error:', error);
+            }
+        });
+
+    } catch (error) {
+        console.error('Popup initialization error:', error);
+        alert('Ayarlar yüklenirken bir hata oluştu.');
+    }
 });

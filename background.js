@@ -1,6 +1,11 @@
-let activeOverlay = false;
+let state = {
+    activeMusicTabId: null,
+    activeOverlayTabIds: new Set(),
+    breakTimer: null,
+    currentBreakDuration: 0
+};
 
-function initializeStats() {
+function initializeState() {
     const today = new Date().toISOString().split('T')[0];
     const defaultStats = {
         daily: {
@@ -18,11 +23,81 @@ function initializeStats() {
         }
     };
 
-    chrome.storage.sync.get(['stats'], function(result) {
+    chrome.storage.sync.get(['stats', 'settings'], function(result) {
         if (!result.stats) {
             chrome.storage.sync.set({ stats: defaultStats });
         }
+        if (!result.settings) {
+            chrome.storage.sync.set({
+                settings: {
+                    workDuration: 0.5,
+                    breakDuration: 20,
+                    enforceWait: false,
+                    urgentDelay: 5,
+                    playMusic: false,
+                    pauseVideos: true
+                }
+            });
+        }
     });
+}
+
+function startBreakTimer(duration) {
+    state.currentBreakDuration = duration;
+    clearInterval(state.breakTimer);
+    
+    state.breakTimer = setInterval(() => {
+        state.currentBreakDuration--;
+        
+        broadcastToOverlayTabs({
+            action: "updateTimer",
+            seconds: state.currentBreakDuration
+        });
+
+        if (state.currentBreakDuration <= 0) {
+            clearInterval(state.breakTimer);
+            closeAllOverlays(false);
+        }
+    }, 1000);
+}
+
+function broadcastToOverlayTabs(message) {
+    state.activeOverlayTabIds.forEach(tabId => {
+        chrome.tabs.sendMessage(tabId, message).catch(() => {
+            state.activeOverlayTabIds.delete(tabId);
+        });
+    });
+}
+
+function resetWorkTimer() {
+    chrome.storage.sync.get(['settings'], function(result) {
+        if (result.settings && result.settings.workDuration) {
+            updateAlarm(result.settings.workDuration);
+        }
+    });
+}
+
+function closeAllOverlays(isUrgent = false) {
+    clearInterval(state.breakTimer);
+    state.currentBreakDuration = 0;
+    
+    broadcastToOverlayTabs({
+        action: "closeOverlay",
+        isUrgent: isUrgent
+    });
+    
+    state.activeOverlayTabIds.clear();
+    state.activeMusicTabId = null;
+
+    resetWorkTimer();
+}
+
+function handleMusicRequest(tabId) {
+    if (state.activeMusicTabId === null) {
+        state.activeMusicTabId = tabId;
+        return true;
+    }
+    return state.activeMusicTabId === tabId;
 }
 
 function updateStats(type) {
@@ -31,7 +106,6 @@ function updateStats(type) {
     chrome.storage.sync.get(['stats'], function(result) {
         let stats = result.stats || {};
         
-        // Günlük istatistikleri başlat
         if (!stats.daily) stats.daily = {};
         if (!stats.daily[today]) {
             stats.daily[today] = {
@@ -41,7 +115,6 @@ function updateStats(type) {
             };
         }
         
-        // Haftalık istatistikleri başlat
         if (!stats.weekly) {
             stats.weekly = {
                 totalReminders: 0,
@@ -51,7 +124,6 @@ function updateStats(type) {
             };
         }
         
-        // İstatistikleri güncelle
         switch(type) {
             case 'reminder':
                 stats.daily[today].totalReminders++;
@@ -67,12 +139,16 @@ function updateStats(type) {
                 break;
         }
         
-        // Haftalık istatistikleri temizle (7 günden eski ise)
-        const startDate = new Date(stats.weekly.startDate);
         const now = new Date();
-        const daysDiff = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
+        const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
         
-        if (daysDiff >= 7) {
+        Object.keys(stats.daily).forEach(date => {
+            if (new Date(date) < weekAgo) {
+                delete stats.daily[date];
+            }
+        });
+        
+        if (new Date(stats.weekly.startDate) < weekAgo) {
             stats.weekly = {
                 totalReminders: 0,
                 urgentSkips: 0,
@@ -80,14 +156,6 @@ function updateStats(type) {
                 startDate: today
             };
         }
-        
-        // Eski günlük kayıtları temizle (7 günden eski)
-        Object.keys(stats.daily).forEach(date => {
-            const entryDate = new Date(date);
-            if ((now - entryDate) / (1000 * 60 * 60 * 24) >= 7) {
-                delete stats.daily[date];
-            }
-        });
         
         chrome.storage.sync.set({ stats: stats });
     });
@@ -100,18 +168,13 @@ function updateAlarm(duration) {
     });
 }
 
-chrome.runtime.onInstalled.addListener(() => {
-    initializeStats();
-    chrome.storage.sync.get({
-        workDuration: 0.5,
-        breakDuration: 20,
-        enforceWait: false,
-        urgentDelay: 5,
-        playMusic: false,
-        pauseVideos: true
-    }, function(items) {
-        updateAlarm(items.workDuration);
-    });
+chrome.runtime.onInstalled.addListener(initializeState);
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+    if (tabId === state.activeMusicTabId) {
+        state.activeMusicTabId = null;
+    }
+    state.activeOverlayTabIds.delete(tabId);
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -119,21 +182,43 @@ chrome.alarms.onAlarm.addListener((alarm) => {
         chrome.tabs.query({}, function(tabs) {
             tabs.forEach(tab => {
                 chrome.tabs.sendMessage(tab.id, {action: "showOverlay"});
+                state.activeOverlayTabIds.add(tab.id);
             });
         });
     }
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "updateAlarm") {
-        updateAlarm(request.workDuration);
-    } else if (request.action === "closeOverlay") {
-        chrome.tabs.query({}, function(tabs) {
-            tabs.forEach(tab => {
-                chrome.tabs.sendMessage(tab.id, {action: "closeOverlay"});
-            });
-        });
-    } else if (request.action === "updateStats") {
-        updateStats(request.type);
+    switch (request.action) {
+        case "requestMusicPermission":
+            sendResponse({ canPlay: handleMusicRequest(sender.tab.id) });
+            break;
+            
+        case "updateAlarm":
+            updateAlarm(request.workDuration);
+            break;
+            
+        case "startBreakTimer":
+            startBreakTimer(request.duration);
+            state.activeOverlayTabIds.add(sender.tab.id);
+            break;
+            
+        case "closeAllOverlays":
+            closeAllOverlays(true);
+            break;
+            
+        case "updateStats":
+            updateStats(request.type);
+            break;
+            
+        case "registerOverlay":
+            state.activeOverlayTabIds.add(sender.tab.id);
+            sendResponse({ currentTimer: state.currentBreakDuration });
+            break;
+            
+        case "resetWorkTimer":
+            resetWorkTimer();
+            break;
     }
+    return true;
 });

@@ -3,7 +3,11 @@
   "name": "Sağlıklı Mola Hatırlatıcı",
   "version": "1.0",
   "description": "Düzenli molalar için nazik hatırlatmalar",
-  "permissions": ["alarms", "storage"],
+  "permissions": [
+    "alarms", 
+    "storage",
+    "tabs"
+  ],
   "action": {
     "default_popup": "popup.html"
   },
@@ -19,6 +23,7 @@
   ],
   "web_accessible_resources": [{
     "resources": ["audio/*"],
-    "matches": ["<all_urls>"]
+    "matches": ["<all_urls>"],
+    "use_dynamic_url": true
   }]
 }
