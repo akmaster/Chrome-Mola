@@ -16,5 +16,9 @@
       "css": ["overlay.css"],
       "js": ["content.js"]
     }
-  ]
+  ],
+  "web_accessible_resources": [{
+    "resources": ["audio/*"],
+    "matches": ["<all_urls>"]
+  }]
 }

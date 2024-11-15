@@ -54,6 +54,67 @@
             box-shadow: 0 0 5px rgba(78, 204, 163, 0.3);
         }
 
+        .setting-hint {
+            font-size: 11px;
+            color: #adb5bd;
+            margin-top: -8px;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .styled-checkbox {
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+            cursor: pointer;
+            accent-color: #4ecca3;
+        }
+
+        .slider-container {
+            background: rgba(78, 204, 163, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .styled-slider {
+            width: 100%;
+            height: 5px;
+            border-radius: 5px;
+            background: #2d3436;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .styled-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4ecca3;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .styled-slider::-webkit-slider-thumb:hover {
+            background: #3db892;
+            transform: scale(1.1);
+        }
+
         button {
             width: 100%;
             padding: 10px;
@@ -82,6 +143,73 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        .statistics {
+            margin-top: 25px;
+            padding: 20px;
+            background: rgba(78, 204, 163, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(78, 204, 163, 0.2);
+        }
+
+        .statistics h3 {
+            color: #4ecca3;
+            font-size: 16px;
+            margin: 0 0 15px 0;
+        }
+
+        .stat-period-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .period-btn {
+            flex: 1;
+            padding: 8px;
+            background: rgba(78, 204, 163, 0.2);
+            border: 1px solid rgba(78, 204, 163, 0.3);
+            border-radius: 5px;
+            color: #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .period-btn.active {
+            background: #4ecca3;
+            color: #1a1a2e;
+        }
+
+        .stat-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+
+        .stat-item.highlight {
+            background: rgba(78, 204, 163, 0.2);
+            border: 1px solid rgba(78, 204, 163, 0.3);
+        }
+
+        .stat-label {
+            color: #ced4da;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            color: #4ecca3;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
         .recommendations {
             margin-top: 25px;
             padding-top: 20px;
@@ -107,11 +235,29 @@
             border: 1px solid rgba(78, 204, 163, 0.2);
             transition: all 0.3s ease;
             cursor: pointer;
+            position: relative;
         }
 
         .recommendation-item:hover {
             background: rgba(78, 204, 163, 0.15);
             transform: translateX(5px);
+        }
+
+        .recommendation-item:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(78, 204, 163, 0.9);
+            color: #1a1a2e;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+            margin-left: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
         .recommendation-item .method {
@@ -132,40 +278,75 @@
         <h2>⚙️ Ayarlar</h2>
         <div class="setting-group">
             <label for="workDuration">Çalışma Süresi (dakika):</label>
-            <input type="number" id="workDuration" min="1" max="120">
+            <input type="number" id="workDuration" min="0.5" max="120" step="0.5">
+            <div class="setting-hint">En az 30 saniye (0.5 dakika)</div>
         </div>
         <div class="setting-group">
             <label for="breakDuration">Mola Süresi (saniye):</label>
             <input type="number" id="breakDuration" min="10" max="300">
+        </div>
+        <div class="setting-group">
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="enforceWait" class="styled-checkbox">
+                <label for="enforceWait">Zorunlu Bekleme</label>
+            </div>
+            <div id="waitTimeContainer" class="slider-container" style="display: none;">
+                <div class="slider-header">
+                    <label for="urgentDelay">Bekleme Süresi:</label>
+                    <span id="urgentDelayValue">5 saniye</span>
+                </div>
+                <input type="range" id="urgentDelay" min="1" max="60" value="5" class="styled-slider">
+            </div>
+        </div>
+        <div class="setting-group">
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="playMusic" class="styled-checkbox">
+                <label for="playMusic">Mola Müziği Çal</label>
+            </div>
+        </div>
+        <div class="setting-group">
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="pauseVideos" class="styled-checkbox" checked>
+                <label for="pauseVideos">Videoları Otomatik Duraklat</label>
+            </div>
         </div>
         <button id="saveSettings">Kaydet</button>
         <div class="info-text">
             Değişiklikler bir sonraki moladan itibaren geçerli olacaktır.
         </div>
 
+        <div class="statistics">
+            <h3>📊 İstatistikler</h3>
+            
+            <div class="stat-period-selector">
+                <button class="period-btn active" data-period="daily">Günlük</button>
+                <button class="period-btn" data-period="weekly">Haftalık</button>
+            </div>
+
+            <div class="stat-container">
+                <div class="stat-item">
+                    <span class="stat-label">Egzersiz Uyarısı Çıkma:</span>
+                    <span class="stat-value" id="totalReminders">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">İşim Var Butonu Kullanımı:</span>
+                    <span class="stat-value" id="urgentSkips">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Tamamlanan Egzersizler:</span>
+                    <span class="stat-value" id="completedExercises">0</span>
+                </div>
+                <div class="stat-item highlight">
+                    <span class="stat-label">Egzersiz Yapma Oranı:</span>
+                    <span class="stat-value" id="completionRate">0%</span>
+                </div>
+            </div>
+        </div>
+
         <div class="recommendations">
             <h3>🎯 Uzman Tavsiyeleri</h3>
             <div class="recommendation-list">
-                <div class="recommendation-item">
-                    <span class="method">Pomodoro Tekniği:</span>
-                    <span class="timing">25 dk çalış, 5 dk dinlen</span>
-                </div>
-                <div class="recommendation-item">
-                    <span class="method">52/17 Kuralı:</span>
-                    <span class="timing">52 dk çalış, 17 dk dinlen</span>
-                </div>
-                <div class="recommendation-item">
-                    <span class="method">90/20 Tekniği:</span>
-                    <span class="timing">90 dk çalış, 20 dk dinlen</span>
-                </div>
-                <div class="recommendation-item">
-                    <span class="method">Göz Sağlığı (20/20/20):</span>
-                    <span class="timing">20 dk çalış, 20 sn dinlen</span>
-                </div>
-                <div class="recommendation-item">
-                    <span class="method">Uzun Oturum:</span>
-                    <span class="timing">100 dk çalış, 15 dk dinlen</span>
-                </div>
+                <!-- Öneriler JavaScript ile doldurulacak -->
             </div>
         </div>
     </div>
