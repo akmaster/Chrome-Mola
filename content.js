@@ -81,16 +81,9 @@ function playRandomMusic() {
 
 function stopMusic() {
     if (currentAudio) {
-        // Ses kademeli olarak azalacak
-        const fadeInterval = setInterval(() => {
-            if (currentAudio.volume > 0.1) {
-                currentAudio.volume -= 0.1;
-            } else {
-                clearInterval(fadeInterval);
-                currentAudio.pause();
-                currentAudio = null;
-            }
-        }, 100);
+        // İşim Acil butonuna basıldığında hemen dursun
+        currentAudio.pause();
+        currentAudio = null;
     }
 }
 
@@ -105,18 +98,24 @@ function resetWorkTimer() {
 
 function closeOverlay(overlay, isUrgent = false) {
     if (overlay) {
+        // Önce müziği durdur (özellikle işim acil butonu için önemli)
+        stopMusic();
+        
+        // Animasyonları başlat
         overlay.classList.add('fade-out');
         const content = overlay.querySelector('.overlay-content');
         if (content) content.classList.add('slide-down');
 
-        stopMusic();
+        // Videoları devam ettir
         resumePausedVideos();
         
+        // Sayacı temizle
         if (globalCountdown) {
             clearInterval(globalCountdown);
             globalCountdown = null;
         }
 
+        // Overlay'i kaldır ve istatistikleri güncelle
         setTimeout(() => {
             overlay.remove();
             resetWorkTimer();
@@ -148,11 +147,18 @@ function createOverlay() {
     const timer = document.createElement('div');
     timer.className = 'timer';
 
+    
     const urgentButton = document.createElement('button');
     urgentButton.className = 'urgent-button';
     urgentButton.textContent = 'İşim Acil';
-    urgentButton.onclick = () => closeOverlay(overlay, true);
-
+    urgentButton.onclick = () => {
+        // Müziği hemen durdur
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio = null;
+        }
+        closeOverlay(overlay, true);
+    };
     content.appendChild(message);
     content.appendChild(timer);
     content.appendChild(urgentButton);
