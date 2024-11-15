@@ -1,41 +1,39 @@
 let activeOverlay = false;
 
-chrome.runtime.onInstalled.addListener(() => {
+function updateAlarm(duration) {
+    chrome.alarms.clear('healthReminder');
     chrome.alarms.create('healthReminder', {
-        periodInMinutes: 15
+        periodInMinutes: duration
+    });
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+    chrome.storage.sync.get({
+        workDuration: 25,
+        breakDuration: 300
+    }, function(items) {
+        updateAlarm(items.workDuration);
     });
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === 'healthReminder') {
-        showOverlayOnAllTabs();
+        chrome.tabs.query({}, function(tabs) {
+            tabs.forEach(tab => {
+                chrome.tabs.sendMessage(tab.id, {action: "showOverlay"});
+            });
+        });
     }
-});
-
-chrome.action.onClicked.addListener((tab) => {
-    showOverlayOnAllTabs();
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "closeOverlay") {
-        closeOverlayOnAllTabs();
+    if (request.action === "updateAlarm") {
+        updateAlarm(request.workDuration);
+    } else if (request.action === "closeOverlay") {
+        chrome.tabs.query({}, function(tabs) {
+            tabs.forEach(tab => {
+                chrome.tabs.sendMessage(tab.id, {action: "closeOverlay"});
+            });
+        });
     }
 });
-
-function showOverlayOnAllTabs() {
-    chrome.tabs.query({}, function(tabs) {
-        tabs.forEach(tab => {
-            chrome.tabs.sendMessage(tab.id, {action: "showOverlay"});
-        });
-    });
-}
-
-function closeOverlayOnAllTabs() {
-    chrome.tabs.query({}, function(tabs) {
-        tabs.forEach(tab => {
-            chrome.tabs.sendMessage(tab.id, {action: "closeOverlay"});
-        });
-    });
-}
-
-// Sonra Birşey Yazılacak

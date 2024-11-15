@@ -4,7 +4,9 @@
   "version": "1.0",
   "description": "Düzenli molalar için nazik hatırlatmalar",
   "permissions": ["alarms", "storage"],
-  "action": {},
+  "action": {
+    "default_popup": "popup.html"
+  },
   "background": {
     "service_worker": "background.js"
   },

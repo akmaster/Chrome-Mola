@@ -1,25 +1,27 @@
 const healthMessages = [
-    "Uzun süre ekrana bakmak göz yorgunluğuna neden olabilir. Gözlerinizi dinlendirin!",
-    "Hareketsiz oturmak kan dolaşımınızı yavaşlatır. Biraz hareket edin!",
-    "Sürekli oturmak duruş bozukluklarına yol açabilir. Ayağa kalkıp esneme hareketleri yapın!",
-    "Bilgisayar başında uzun süre kalmak stres seviyenizi artırabilir. Kısa bir mola verin!",
-    "Düzenli molalar vermek verimliliğinizi artırır. Şimdi mola zamanı!",
-    "Karpal Tünel Sendromunu önlemek için bilek egzersizleri yapın!",
-    "Ekran karşısında gözlerinizi kırpma sıklığınız azalır. 20-20-20 kuralını uygulayın!",
-    "Zihinsel dinlenme için kısa molalar önemlidir. Düşüncelerinizi toplayın!",
-    "Boyun ağrılarını önlemek için boyun egzersizleri yapın!",
-    "Fiziksel aktivite beyin fonksiyonlarınızı geliştirir. Kısa bir yürüyüş yapın!"
+    "🌟 Gözlerinizi dinlendirme vakti! 20 feet (6 metre) uzaklıktaki bir noktaya 20 saniye bakın.\n💭 \"Gözlerinize gösterdiğiniz özen, geleceğinize yaptığınız yatırımdır!\"",
+    
+    "💪 Omuzlarınızı 5 kez öne, 5 kez arkaya çevirin. Gerginliğin akıp gittiğini hissedin!\n💭 \"Her küçük hareket, daha sağlıklı bir yaşama doğru atılan bir adımdır!\"",
+    
+    "🧘‍♀️ Ellerinizi başınızın üzerinde kenetleyin ve nazikçe esneyerek uzanın.\n💭 \"Kendinize ayırdığınız bu kısa an, tüm gününüzü değiştirebilir!\"",
+    
+    "🦶 Ayağa kalkın ve parmak uçlarınızda 10 kez yükselip alçalın.\n💭 \"Hareket etmek özgürlüktür, dans eder gibi esneyin!\"",
+    
+    "🌈 Derin bir nefes alın, 4'e kadar sayın ve yavaşça verin. 3 kez tekrarlayın.\n💭 \"Her nefes yeni bir başlangıçtır, kendinizi yenileyin!\"",
+    
+    "⚡ Masanızdan kalkın ve 2 dakika boyunca yerinizde yürüyün.\n💭 \"Küçük molalar, büyük enerjiler getirir!\"",
+    
+    "🎯 Başınızı yavaşça sağa ve sola çevirin, her yönde 10 saniye tutun.\n💭 \"Bedeninizi dinleyin, size ne söylediğini duyun!\"",
+    
+    "🌺 Bileklerinizi her iki yöne 10'ar kez çevirin.\n💭 \"Her hareket sizi daha güçlü, daha dinç yapıyor!\"",
+    
+    "🎈 Parmaklarınızı açıp kapatın ve 10 saniye boyunca ellerinizi sallayın.\n💭 \"Kendinize gösterdiğiniz özen, başarınızın anahtarıdır!\"",
+    
+    "🌟 Kollarınızı iki yana açın ve küçük daireler çizin.\n💭 \"Bu molalar, verimliliğinizin süper gücü!\""
 ];
 
 let globalCountdown = null;
 let globalOverlay = null;
-
-function updateAllTabs() {
-    chrome.runtime.sendMessage({
-        action: "updateTimer",
-        seconds: globalCountdown
-    });
-}
 
 function createOverlay() {
     if (document.querySelector('.health-overlay')) {
@@ -56,25 +58,30 @@ function createOverlay() {
     overlay.appendChild(content);
     document.body.appendChild(overlay);
 
-    let seconds = 60;
-    globalCountdown = setInterval(() => {
-        seconds--;
-        timer.textContent = `${seconds}`;
+    chrome.storage.sync.get({
+        breakDuration: 300
+    }, function(items) {
+        let seconds = items.breakDuration;
+        timer.textContent = seconds;
         
-        if (seconds <= 0) {
-            clearInterval(globalCountdown);
-            globalCountdown = null;
-            chrome.runtime.sendMessage({ action: "closeOverlay" });
-            overlay.remove();
-        }
-    }, 1000);
+        globalCountdown = setInterval(() => {
+            seconds--;
+            timer.textContent = seconds;
+            
+            if (seconds <= 0) {
+                clearInterval(globalCountdown);
+                globalCountdown = null;
+                chrome.runtime.sendMessage({ action: "closeOverlay" });
+                overlay.remove();
+            }
+        }, 1000);
+    });
 
     setTimeout(() => {
         overlay.classList.add('show');
     }, 100);
 }
 
-// Mesaj dinleyicisi
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     switch(request.action) {
         case "showOverlay":
@@ -87,11 +94,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     clearInterval(globalCountdown);
                     globalCountdown = null;
                 }
-            }
-            break;
-        case "updateTimer":
-            if (document.querySelector('.timer')) {
-                document.querySelector('.timer').textContent = request.seconds;
             }
             break;
     }

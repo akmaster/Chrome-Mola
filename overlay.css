@@ -4,7 +4,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(120deg, #2c3e50 0%, #3498db 100%);
+    background: linear-gradient(120deg, #1a1a2e 0%, #16213e 100%);
     z-index: 999999;
     display: none;
     justify-content: center;
@@ -14,34 +14,41 @@
 }
 
 .overlay-content {
-    background: rgba(44, 62, 80, 0.95);
+    background: rgba(26, 26, 46, 0.95);
     padding: 50px;
     border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     text-align: center;
     max-width: 800px;
     width: 80%;
-    font-family: 'Arial', sans-serif;
+    font-family: 'Segoe UI', sans-serif;
 }
 
 .message {
-    font-size: 32px;
-    color: #ecf0f1;
+    font-size: 24px;
+    color: #e9ecef;
     margin-bottom: 40px;
-    line-height: 1.5;
+    line-height: 1.8;
     font-weight: 500;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    white-space: pre-line;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .timer {
-    font-size: 64px;
-    color: #3498db;
+    font-size: 56px;
+    color: #4ecca3;
     margin: 30px 0;
     font-weight: bold;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    text-shadow: 0 0 10px rgba(78, 204, 163, 0.3);
 }
 
 .urgent-button {
-    background-color: #e74c3c;
+    background-color: #e94560;
     color: white;
     border: none;
     padding: 15px 30px;
@@ -50,14 +57,14 @@
     font-size: 18px;
     transition: all 0.3s ease;
     margin-top: 30px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(233, 69, 96, 0.2);
 }
 
 .urgent-button:hover {
-    background-color: #c0392b;
+    background-color: #d64161;
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 6px 20px rgba(233, 69, 96, 0.3);
 }
 
 .show {

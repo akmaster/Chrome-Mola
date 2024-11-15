@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            width: 350px;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a2e;
+            color: #e9ecef;
+            margin: 0;
+        }
+
+        .settings-container {
+            background-color: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h2 {
+            color: #4ecca3;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .setting-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ced4da;
+            font-size: 14px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            background-color: #1a1a2e;
+            border: 1px solid #4ecca3;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            color: #e9ecef;
+            outline: none;
+        }
+
+        input[type="number"]:focus {
+            border-color: #4ecca3;
+            box-shadow: 0 0 5px rgba(78, 204, 163, 0.3);
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4ecca3;
+            color: #1a1a2e;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #3db892;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(78, 204, 163, 0.2);
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #adb5bd;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .recommendations {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .recommendations h3 {
+            color: #4ecca3;
+            font-size: 16px;
+            margin-bottom: 15px;
+            margin-top: 0;
+        }
+
+        .recommendation-list {
+            font-size: 13px;
+        }
+
+        .recommendation-item {
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            background: rgba(78, 204, 163, 0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(78, 204, 163, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .recommendation-item:hover {
+            background: rgba(78, 204, 163, 0.15);
+            transform: translateX(5px);
+        }
+
+        .recommendation-item .method {
+            color: #4ecca3;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .recommendation-item .timing {
+            color: #ced4da;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <h2>⚙️ Ayarlar</h2>
+        <div class="setting-group">
+            <label for="workDuration">Çalışma Süresi (dakika):</label>
+            <input type="number" id="workDuration" min="1" max="120">
+        </div>
+        <div class="setting-group">
+            <label for="breakDuration">Mola Süresi (saniye):</label>
+            <input type="number" id="breakDuration" min="10" max="300">
+        </div>
+        <button id="saveSettings">Kaydet</button>
+        <div class="info-text">
+            Değişiklikler bir sonraki moladan itibaren geçerli olacaktır.
+        </div>
+
+        <div class="recommendations">
+            <h3>🎯 Uzman Tavsiyeleri</h3>
+            <div class="recommendation-list">
+                <div class="recommendation-item">
+                    <span class="method">Pomodoro Tekniği:</span>
+                    <span class="timing">25 dk çalış, 5 dk dinlen</span>
+                </div>
+                <div class="recommendation-item">
+                    <span class="method">52/17 Kuralı:</span>
+                    <span class="timing">52 dk çalış, 17 dk dinlen</span>
+                </div>
+                <div class="recommendation-item">
+                    <span class="method">90/20 Tekniği:</span>
+                    <span class="timing">90 dk çalış, 20 dk dinlen</span>
+                </div>
+                <div class="recommendation-item">
+                    <span class="method">Göz Sağlığı (20/20/20):</span>
+                    <span class="timing">20 dk çalış, 20 sn dinlen</span>
+                </div>
+                <div class="recommendation-item">
+                    <span class="method">Uzun Oturum:</span>
+                    <span class="timing">100 dk çalış, 15 dk dinlen</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>
