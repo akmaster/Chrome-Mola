@@ -55,6 +55,75 @@
     color: #4ecca3;
     margin: 20px 0;
     font-family: monospace;
+    animation: pulse 2s infinite;
+}
+
+/* Müzik Kontrol Stilleri */
+.music-container {
+    background: rgba(78, 204, 163, 0.1);
+    padding: 15px;
+    border-radius: 10px;
+    margin: 20px 0;
+    border: 1px solid rgba(78, 204, 163, 0.2);
+}
+
+.music-label {
+    color: #4ecca3;
+    font-size: 14px;
+    margin-bottom: 10px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.music-label::before {
+    content: '🎵';
+    animation: rotate 2s linear infinite;
+}
+
+/* Ses Kontrolü */
+.volume-slider {
+    width: 100%;
+    height: 5px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(78, 204, 163, 0.2);
+    border-radius: 5px;
+    outline: none;
+    margin-top: 10px;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    background: #4ecca3;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    background: #3db892;
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    background: #4ecca3;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.volume-slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    background: #3db892;
 }
 
 .urgent-button {
@@ -84,42 +153,7 @@
     box-shadow: 0 4px 15px rgba(230, 57, 70, 0.3);
 }
 
-/* Yeni eklenen müzik butonu stilleri */
-.start-music-button {
-    background-color: #4ecca3;
-    color: white;
-    border: none;
-    padding: 12px 25px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    margin-bottom: 15px;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-.start-music-button:hover {
-    background-color: #3db892;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(78, 204, 163, 0.3);
-}
-
-.start-music-button:active {
-    transform: translateY(0);
-}
-
-.start-music-button:disabled {
-    background-color: #2a7a62;
-    cursor: not-allowed;
-    transform: none;
-    opacity: 0.7;
-}
-
+/* Animasyonlar */
 @keyframes pulse {
     0% {
         transform: scale(1);
@@ -132,8 +166,30 @@
     }
 }
 
-.timer {
-    animation: pulse 2s infinite;
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.message,
+.timer,
+.music-container {
+    animation: slideIn 0.5s ease forwards;
 }
 
 /* Responsive tasarım */
@@ -151,47 +207,42 @@
         font-size: 36px;
     }
 
-    .urgent-button,
-    .start-music-button {
+    .urgent-button {
         padding: 10px 20px;
         font-size: 14px;
     }
-}
 
-/* Animasyon efektleri */
-@keyframes slideIn {
-    from {
-        transform: translateY(-20px);
-        opacity: 0;
+    .music-container {
+        padding: 10px;
     }
-    to {
-        transform: translateY(0);
-        opacity: 1;
+
+    .music-label {
+        font-size: 12px;
     }
 }
 
-.message,
-.timer,
-.start-music-button {
-    animation: slideIn 0.5s ease forwards;
+/* Erişilebilirlik için focus stilleri */
+.urgent-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.5);
 }
 
-/* Buton hover efektleri için ek stiller */
-.start-music-button::before {
-    content: '🎵';
-    font-size: 18px;
-    margin-right: 8px;
+/* Geçiş efektleri */
+.overlay-content * {
+    transition: all 0.3s ease;
 }
 
-.start-music-button:hover::before {
-    animation: spin 2s linear infinite;
-}
-
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+/* Overlay arka plan efekti */
+.overlay-content::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    border-radius: 15px;
+    background: linear-gradient(45deg, #4ecca3, #16213e);
+    z-index: -1;
+    opacity: 0.5;
+    filter: blur(10px);
 }

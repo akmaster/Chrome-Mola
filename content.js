@@ -12,155 +12,83 @@ const healthMessages = [
     "🌟 Kollarınızı iki yana açın ve küçük daireler çizin.\n💭 \"Bu molalar, verimliliğinizin süper gücü!\""
 ];
 
-let currentAudio = null;
-let pausedVideos = [];
 let globalOverlay = null;
-let audioContext = null;
-let audioBuffer = null;
-let audioSource = null;
+let currentAudio = null;
 
-// Müzik yönetimi
-async function initializeAudio(musicFile) {
-    try {
-        const audioUrl = chrome.runtime.getURL(`audio/${musicFile}`);
-        console.log('Müzik yükleniyor:', audioUrl);
-
-        if (!audioContext) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        }
-
-        const response = await fetch(audioUrl);
-        const arrayBuffer = await response.arrayBuffer();
-        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-        console.log('Müzik başarıyla yüklendi');
-        return true;
-    } catch (error) {
-        console.error('Müzik yükleme hatası:', error);
-        return false;
-    }
+// Ses yönetimi
+function createAudio(url) {
+    const audio = new Audio(url);
+    audio.loop = true;
+    return audio;
 }
 
-async function playRandomMusic() {
+function playAudio(audio) {
+    if (!audio) return;
+    
     try {
-        console.log('Müzik başlatma deneniyor...');
+        audio.volume = 0;
+        const playPromise = audio.play();
         
-        const response = await chrome.runtime.sendMessage({action: "requestMusicPermission"});
-        console.log('Müzik izni yanıtı:', response);
-
-        if (!response || !response.canPlay) {
-            console.log('Müzik izni alınamadı');
-            return;
-        }
-
-        if (audioSource) {
-            audioSource.stop();
-            audioSource = null;
-        }
-
-        const musicFiles = ['music1.ogg', 'music2.ogg'];
-        const randomMusic = musicFiles[Math.floor(Math.random() * musicFiles.length)];
-        console.log('Seçilen müzik:', randomMusic);
-
-        if (await initializeAudio(randomMusic)) {
-            audioSource = audioContext.createBufferSource();
-            audioSource.buffer = audioBuffer;
-            
-            const gainNode = audioContext.createGain();
-            gainNode.gain.value = 0;
-            
-            audioSource.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            audioSource.loop = true;
-            audioSource.start();
-
-            // Fade in
-            gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + 2);
-            
-            console.log('Müzik başarıyla çalmaya başladı');
-        }
-    } catch (error) {
-        console.error('Müzik işlemi hatası:', error);
-    }
-}
-
-function stopMusic() {
-    if (audioSource) {
-        try {
-            const gainNode = audioContext.createGain();
-            gainNode.gain.value = 1;
-            
-            audioSource.disconnect();
-            audioSource.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            // Fade out
-            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 1);
-            
-            setTimeout(() => {
-                audioSource.stop();
-                audioSource = null;
-            }, 1000);
-        } catch (error) {
-            console.error('Müzik durdurma hatası:', error);
-        }
-    }
-}
-// Video yönetimi
-function pauseAllVideos() {
-    try {
-        const videos = document.querySelectorAll('video');
-        const iframes = document.querySelectorAll('iframe');
-        
-        videos.forEach(video => {
-            if (!video.paused) {
-                video.pause();
-                pausedVideos.push(video);
-            }
-        });
-
-        iframes.forEach(iframe => {
-            if (iframe.src && (iframe.src.includes('youtube.com') || iframe.src.includes('youtu.be'))) {
-                try {
-                    iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-                    pausedVideos.push(iframe);
-                } catch (e) {
-                    console.warn('Video duraklatma hatası:', e);
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                // Ses seviyesini kademeli olarak artır
+                let volume = 0;
+                const fadeInterval = setInterval(() => {
+                    if (volume < 0.5) {
+                        volume += 0.1;
+                        audio.volume = volume;
+                    } else {
+                        clearInterval(fadeInterval);
+                    }
+                }, 200);
+                console.log('Ses çalmaya başladı');
+            }).catch(error => {
+                console.log('Otomatik oynatma engellendi, kullanıcı etkileşimi bekleniyor');
+                
+                // Overlay'e tıklandığında müziği başlat
+                if (globalOverlay) {
+                    globalOverlay.addEventListener('click', function playOnClick() {
+                        audio.play().then(() => {
+                            audio.volume = 0.5;
+                            globalOverlay.removeEventListener('click', playOnClick);
+                        }).catch(() => {});
+                    }, { once: true });
                 }
-            }
-        });
+            });
+        }
     } catch (error) {
-        console.warn('Video işlemi hatası:', error);
+        console.error('Ses çalma hatası:', error);
     }
 }
 
-function resumePausedVideos() {
-    pausedVideos.forEach(element => {
-        try {
-            if (element instanceof HTMLVideoElement) {
-                element.play().catch(() => {});
-            } else if (element instanceof HTMLIFrameElement) {
-                element.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+function stopAudio(audio) {
+    if (!audio) return;
+    
+    try {
+        // Ses seviyesini kademeli olarak azalt
+        const fadeInterval = setInterval(() => {
+            if (audio.volume > 0.1) {
+                audio.volume -= 0.1;
+            } else {
+                clearInterval(fadeInterval);
+                audio.pause();
+                audio.currentTime = 0;
             }
-        } catch (e) {
-            console.warn('Video devam ettirme hatası:', e);
-        }
-    });
-    pausedVideos = [];
+        }, 100);
+    } catch (error) {
+        console.error('Ses durdurma hatası:', error);
+    }
 }
 
 // Temizleme işlemleri
 function cleanup() {
-    stopMusic();
-    resumePausedVideos();
+    if (currentAudio) {
+        stopAudio(currentAudio);
+        currentAudio = null;
+    }
     if (globalOverlay) {
         globalOverlay.remove();
         globalOverlay = null;
-    }
-    if (audioContext) {
-        audioContext.close().catch(() => {});
-        audioContext = null;
     }
 }
 
@@ -188,26 +116,8 @@ function createOverlay() {
         chrome.runtime.sendMessage({ action: "closeOverlay" });
     };
 
-    // Müzik başlatma butonu
-    const startMusicButton = document.createElement('button');
-    startMusicButton.className = 'start-music-button';
-    startMusicButton.textContent = '🎵 Müziği Başlat';
-    startMusicButton.style.marginBottom = '10px';
-    startMusicButton.style.backgroundColor = '#4ecca3';
-    startMusicButton.onclick = async () => {
-        if (audioContext && audioContext.state === 'suspended') {
-            await audioContext.resume();
-        }
-        playRandomMusic();
-        startMusicButton.style.display = 'none';
-    };
-
     content.appendChild(message);
     content.appendChild(timer);
-    content.appendChild(startMusicButton);
-    content.appendChild(urgentButton);
-    globalOverlay.appendChild(content);
-    document.body.appendChild(globalOverlay);
 
     // Ayarları yükle ve uygula
     chrome.storage.sync.get(['settings'], async function(result) {
@@ -217,21 +127,46 @@ function createOverlay() {
             breakDuration: 20,
             enforceWait: false,
             urgentDelay: 5,
-            playMusic: true,
-            pauseVideos: true
+            playMusic: true
         };
-
-        if (settings.pauseVideos) {
-            pauseAllVideos();
-        }
 
         if (settings.playMusic) {
             console.log('Müzik çalma aktif');
-            startMusicButton.style.display = 'block';
-        } else {
-            console.log('Müzik çalma devre dışı');
-            startMusicButton.style.display = 'none';
+            const musicFiles = ['music1.ogg', 'music2.ogg'];
+            const randomMusic = musicFiles[Math.floor(Math.random() * musicFiles.length)];
+            const audioUrl = chrome.runtime.getURL(`audio/${randomMusic}`);
+
+            const musicContainer = document.createElement('div');
+            musicContainer.className = 'music-container';
+
+            const musicLabel = document.createElement('div');
+            musicLabel.className = 'music-label';
+            musicLabel.innerHTML = '🎵 Mola Müziği';
+
+            const volumeControl = document.createElement('input');
+            volumeControl.type = 'range';
+            volumeControl.min = '0';
+            volumeControl.max = '100';
+            volumeControl.value = '50';
+            volumeControl.className = 'volume-slider';
+
+            currentAudio = createAudio(audioUrl);
+            
+            volumeControl.onchange = (e) => {
+                if (currentAudio) {
+                    currentAudio.volume = e.target.value / 100;
+                }
+            };
+
+            musicContainer.appendChild(musicLabel);
+            musicContainer.appendChild(volumeControl);
+            content.appendChild(musicContainer);
+
+            // Müziği başlat
+            playAudio(currentAudio);
         }
+
+        content.appendChild(urgentButton);
 
         if (settings.enforceWait) {
             setTimeout(() => {
@@ -252,6 +187,9 @@ function createOverlay() {
         });
     });
 
+    globalOverlay.appendChild(content);
+    document.body.appendChild(globalOverlay);
+
     requestAnimationFrame(() => {
         globalOverlay.classList.add('show');
     });
@@ -267,14 +205,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             break;
         case "closeOverlay":
             if (globalOverlay) {
-                stopMusic();
-                resumePausedVideos();
+                cleanup();
                 globalOverlay.classList.add('fade-out');
                 const content = globalOverlay.querySelector('.overlay-content');
                 if (content) content.classList.add('slide-down');
                 
                 setTimeout(() => {
-                    cleanup();
+                    if (globalOverlay) {
+                        globalOverlay.remove();
+                        globalOverlay = null;
+                    }
                     chrome.runtime.sendMessage({
                         action: "updateStats",
                         type: request.isUrgent ? "urgent" : "completed"
