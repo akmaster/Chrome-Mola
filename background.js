@@ -1,21 +1,32 @@
-// background.js
+/**
+ * background.js
+ * Bu dosya, eklentinin arka planda çalışan ana bileşenidir.
+ * Zamanlayıcı yönetimi, istatistik takibi ve tab kontrolü gibi işlemleri yönetir.
+ */
+
+// Global durum değişkenleri
 let state = {
-    activeMusicTabId: null,
-    activeOverlayTabId: null,
-    breakTimer: null,
-    currentBreakDuration: 0,
-    isBreakActive: false
+    activeMusicTabId: null,      // Aktif müzik çalan tab ID'si
+    activeOverlayTabId: null,    // Aktif mola ekranı gösteren tab ID'si
+    breakTimer: null,            // Mola zamanlayıcısı
+    currentBreakDuration: 0,     // Mevcut mola süresi
+    isBreakActive: false         // Mola durumu
 };
 
-// İlk kurulum
+/**
+ * İlk kurulum fonksiyonu
+ * Eklenti ilk yüklendiğinde varsayılan ayarları ve istatistikleri oluşturur
+ */
 function initializeState() {
     const today = new Date().toISOString().split('T')[0];
+    
+    // Varsayılan istatistikler
     const defaultStats = {
         daily: {
             [today]: {
-                totalReminders: 0,
-                urgentSkips: 0,
-                completedExercises: 0
+                totalReminders: 0,    // Toplam hatırlatma sayısı
+                urgentSkips: 0,       // Acil durumda atlanan mola sayısı
+                completedExercises: 0  // Tamamlanan egzersiz sayısı
             }
         },
         weekly: {
@@ -26,15 +37,17 @@ function initializeState() {
         }
     };
 
+    // Varsayılan ayarlar
     const defaultSettings = {
-        workDuration: 0.5,
-        breakDuration: 20,
-        enforceWait: false,
-        urgentDelay: 5,
-        playMusic: true,  // Varsayılan olarak müzik açık
-        pauseVideos: true
+        workDuration: 0.5,        // Çalışma süresi (dakika)
+        breakDuration: 20,        // Mola süresi (saniye)
+        enforceWait: false,       // Zorunlu bekleme
+        urgentDelay: 5,          // Acil durum butonu gecikmesi
+        playMusic: true,         // Müzik çalma durumu
+        pauseVideos: true        // Video duraklatma durumu
     };
 
+    // Ayarları ve istatistikleri kaydet
     chrome.storage.sync.get(['stats', 'settings'], function(result) {
         if (!result.stats) {
             chrome.storage.sync.set({ stats: defaultStats });
@@ -45,7 +58,11 @@ function initializeState() {
     });
 }
 
-// Aktif tab kontrolü
+/**
+ * Tab aktiflik kontrolü
+ * @param {number} tabId - Kontrol edilecek tab ID'si
+ * @returns {Promise<boolean>} Tab'ın aktif olup olmadığı
+ */
 async function isTabActive(tabId) {
     try {
         const tab = await chrome.tabs.get(tabId);
@@ -55,7 +72,10 @@ async function isTabActive(tabId) {
     }
 }
 
-// Zamanlayıcı yönetimi
+/**
+ * Mola zamanlayıcısını başlat
+ * @param {number} duration - Mola süresi (saniye)
+ */
 function startBreakTimer(duration) {
     state.currentBreakDuration = duration;
     state.isBreakActive = true;
@@ -84,7 +104,9 @@ function startBreakTimer(duration) {
     }, 1000);
 }
 
-// Overlay yönetimi
+/**
+ * Mola ekranını göster
+ */
 async function showOverlay() {
     try {
         const [activeTab] = await chrome.tabs.query({active: true, currentWindow: true});
@@ -98,6 +120,10 @@ async function showOverlay() {
     }
 }
 
+/**
+ * Mola ekranını kapat
+ * @param {boolean} isUrgent - Acil durum butonu ile mi kapatıldı
+ */
 async function closeOverlay(isUrgent = false) {
     clearInterval(state.breakTimer);
     state.currentBreakDuration = 0;
@@ -119,7 +145,11 @@ async function closeOverlay(isUrgent = false) {
     resetWorkTimer();
 }
 
-// Müzik yönetimi
+/**
+ * Müzik izni kontrolü
+ * @param {number} tabId - İzin isteyen tab ID'si
+ * @returns {boolean} İzin durumu
+ */
 function handleMusicRequest(tabId) {
     console.log('Müzik izni istendi:', tabId);
     if (state.activeMusicTabId === null) {
@@ -129,13 +159,17 @@ function handleMusicRequest(tabId) {
     return state.activeMusicTabId === tabId;
 }
 
-// İstatistik yönetimi
+/**
+ * İstatistikleri güncelle
+ * @param {string} type - İstatistik tipi (reminder/urgent/completed)
+ */
 function updateStats(type) {
     const today = new Date().toISOString().split('T')[0];
     
     chrome.storage.sync.get(['stats'], function(result) {
         let stats = result.stats || {};
         
+        // Günlük istatistikleri kontrol et
         if (!stats.daily) stats.daily = {};
         if (!stats.daily[today]) {
             stats.daily[today] = {
@@ -145,6 +179,7 @@ function updateStats(type) {
             };
         }
         
+        // Haftalık istatistikleri kontrol et
         if (!stats.weekly) {
             stats.weekly = {
                 totalReminders: 0,
@@ -154,6 +189,7 @@ function updateStats(type) {
             };
         }
         
+        // İstatistik tipine göre güncelle
         switch(type) {
             case 'reminder':
                 stats.daily[today].totalReminders++;
@@ -169,7 +205,7 @@ function updateStats(type) {
                 break;
         }
         
-        // Eski verileri temizle
+        // Eski verileri temizle (7 günden eski)
         const now = new Date();
         const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
         
@@ -179,6 +215,7 @@ function updateStats(type) {
             }
         });
         
+        // Haftalık istatistikleri sıfırla (gerekirse)
         if (new Date(stats.weekly.startDate) < weekAgo) {
             stats.weekly = {
                 totalReminders: 0,
@@ -188,11 +225,15 @@ function updateStats(type) {
             };
         }
         
+        // Güncellenmiş istatistikleri kaydet
         chrome.storage.sync.set({ stats: stats });
     });
 }
 
-// Alarm yönetimi
+/**
+ * Alarm yönetimi
+ * @param {number} duration - Çalışma süresi (dakika)
+ */
 function updateAlarm(duration) {
     chrome.alarms.clear('healthReminder');
     chrome.alarms.create('healthReminder', {
@@ -200,6 +241,9 @@ function updateAlarm(duration) {
     });
 }
 
+/**
+ * Çalışma zamanlayıcısını sıfırla
+ */
 function resetWorkTimer() {
     chrome.storage.sync.get(['settings'], function(result) {
         if (result.settings && result.settings.workDuration) {
@@ -211,6 +255,7 @@ function resetWorkTimer() {
 // Event Listeners
 chrome.runtime.onInstalled.addListener(initializeState);
 
+// Tab kapatıldığında
 chrome.tabs.onRemoved.addListener((tabId) => {
     if (tabId === state.activeMusicTabId) {
         state.activeMusicTabId = null;
@@ -221,6 +266,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     }
 });
 
+// Tab değiştiğinde
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
     if (state.isBreakActive && state.activeOverlayTabId && 
         state.activeOverlayTabId !== activeInfo.tabId) {
@@ -229,12 +275,14 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     }
 });
 
+// Alarm tetiklendiğinde
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === 'healthReminder') {
         showOverlay();
     }
 });
 
+// Mesaj alındığında
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Mesaj alındı:', request);
     

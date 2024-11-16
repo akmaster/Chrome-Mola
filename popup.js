@@ -1,4 +1,10 @@
-// popup.js
+/**
+ * popup.js
+ * Bu dosya, ayarlar penceresinin işlevselliğini yönetir.
+ * Ayarların kaydedilmesi, istatistiklerin gösterilmesi ve önerilerin yönetimini sağlar.
+ */
+
+// Önerilen çalışma programları
 const recommendations = {
     'quick-break': {
         name: 'Hızlı Mola',
@@ -44,7 +50,10 @@ const recommendations = {
     }
 };
 
-// İstatistik güncelleme
+/**
+ * İstatistikleri güncelle ve göster
+ * @param {string} period - İstatistik periyodu (daily/weekly)
+ */
 function updateStatisticsDisplay(period = 'daily') {
     chrome.storage.sync.get(['stats'], function(result) {
         const stats = result.stats || {};
@@ -65,17 +74,22 @@ function updateStatisticsDisplay(period = 'daily') {
             };
         }
         
+        // İstatistik değerlerini güncelle
         document.getElementById('totalReminders').textContent = displayStats.totalReminders;
         document.getElementById('urgentSkips').textContent = displayStats.urgentSkips;
         document.getElementById('completedExercises').textContent = displayStats.completedExercises;
         
+        // Tamamlanma oranını hesapla
         const completionRate = displayStats.totalReminders === 0 ? 0 :
             Math.round((displayStats.completedExercises / displayStats.totalReminders) * 100);
         document.getElementById('completionRate').textContent = `${completionRate}%`;
     });
 }
 
-// Ayarları kaydet
+/**
+ * Ayarları kaydet
+ * @param {Object} settings - Kaydedilecek ayarlar
+ */
 async function saveSettings(settings) {
     console.log('Ayarlar kaydediliyor:', settings);
     return new Promise((resolve, reject) => {
@@ -96,7 +110,10 @@ async function saveSettings(settings) {
     });
 }
 
-// Ayarları yükle
+/**
+ * Kayıtlı ayarları yükle
+ * @returns {Promise<Object>} Yüklenen ayarlar
+ */
 async function loadSettings() {
     return new Promise((resolve) => {
         const defaultSettings = {
@@ -104,7 +121,7 @@ async function loadSettings() {
             breakDuration: 20,
             enforceWait: false,
             urgentDelay: 5,
-            playMusic: true,  // Varsayılan olarak müzik açık
+            playMusic: true,
             pauseVideos: true
         };
 
@@ -115,7 +132,10 @@ async function loadSettings() {
     });
 }
 
-// UI güncelleme
+/**
+ * UI elementlerini ayarlarla güncelle
+ * @param {Object} settings - Uygulanacak ayarlar
+ */
 function updateUIWithSettings(settings) {
     document.getElementById('workDuration').value = settings.workDuration;
     document.getElementById('breakDuration').value = settings.breakDuration;
@@ -128,7 +148,10 @@ function updateUIWithSettings(settings) {
     document.getElementById('pauseVideos').checked = settings.pauseVideos;
 }
 
-// Kaydetme animasyonu
+/**
+ * Kaydetme animasyonu göster
+ * @param {HTMLElement} button - Animasyon uygulanacak buton
+ */
 function showSaveAnimation(button) {
     const originalText = button.textContent;
     const originalColor = button.style.backgroundColor;
@@ -142,7 +165,7 @@ function showSaveAnimation(button) {
     }, 1500);
 }
 
-// Ana başlatma fonksiyonu
+// Sayfa yüklendiğinde çalışacak ana fonksiyon
 document.addEventListener('DOMContentLoaded', async function() {
     try {
         console.log('Popup başlatılıyor...');
@@ -165,6 +188,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             div.dataset.tooltip = `Çalışma: ${rec.workMinutes} dk, Mola: ${rec.breakSeconds} ${rec.breakType}`;
             recommendationList.appendChild(div);
 
+            // Öneri tıklama olayı
             div.addEventListener('click', function() {
                 const recType = this.dataset.type;
                 const rec = recommendations[recType];
@@ -202,6 +226,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Kaydet butonu
         document.getElementById('saveSettings').addEventListener('click', async function() {
+            // Form değerlerini al
             const workDuration = parseFloat(document.getElementById('workDuration').value);
             const breakDuration = parseInt(document.getElementById('breakDuration').value);
             const enforceWait = document.getElementById('enforceWait').checked;
@@ -209,6 +234,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const playMusic = document.getElementById('playMusic').checked;
             const pauseVideos = document.getElementById('pauseVideos').checked;
 
+            // Değerleri kontrol et
             if (isNaN(workDuration) || isNaN(breakDuration) || 
                 workDuration < 0.5 || breakDuration < 10 || 
                 (enforceWait && (isNaN(urgentDelay) || urgentDelay < 1 || urgentDelay > 60))) {
@@ -216,6 +242,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
+            // Yeni ayarları oluştur
             const newSettings = {
                 workDuration,
                 breakDuration,

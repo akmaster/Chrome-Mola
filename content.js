@@ -1,4 +1,10 @@
-// content.js
+/**
+ * content.js
+ * Bu dosya, web sayfası içinde çalışan ve kullanıcı arayüzünü yöneten ana bileşendir.
+ * Mola ekranı, müzik kontrolü ve kullanıcı etkileşimlerini yönetir.
+ */
+
+// Sağlık mesajları listesi - Mola sırasında rastgele gösterilir
 const healthMessages = [
     "🌟 Gözlerinizi dinlendirme vakti! 20 feet (6 metre) uzaklıktaki bir noktaya 20 saniye bakın.\n💭 \"Gözlerinize gösterdiğiniz özen, geleceğinize yaptığınız yatırımdır!\"",
     "💪 Omuzlarınızı 5 kez öne, 5 kez arkaya çevirin. Gerginliğin akıp gittiğini hissedin!\n💭 \"Her küçük hareket, daha sağlıklı bir yaşama doğru atılan bir adımdır!\"",
@@ -12,20 +18,30 @@ const healthMessages = [
     "🌟 Kollarınızı iki yana açın ve küçük daireler çizin.\n💭 \"Bu molalar, verimliliğinizin süper gücü!\""
 ];
 
-let globalOverlay = null;
-let currentAudio = null;
+// Global değişkenler
+let globalOverlay = null;  // Mola ekranı elementi
+let currentAudio = null;   // Aktif müzik elementi
 
-// Ses yönetimi
+/**
+ * Ses dosyası oluşturma
+ * @param {string} url - Müzik dosyası URL'i
+ * @returns {HTMLAudioElement} Audio elementi
+ */
 function createAudio(url) {
     const audio = new Audio(url);
-    audio.loop = true;
+    audio.loop = true;  // Müziği sürekli tekrarla
     return audio;
 }
 
+/**
+ * Müzik çalma fonksiyonu
+ * @param {HTMLAudioElement} audio - Çalınacak audio elementi
+ */
 function playAudio(audio) {
     if (!audio) return;
     
     try {
+        // Başlangıçta ses seviyesi 0
         audio.volume = 0;
         const playPromise = audio.play();
         
@@ -61,6 +77,10 @@ function playAudio(audio) {
     }
 }
 
+/**
+ * Müziği durdurma fonksiyonu
+ * @param {HTMLAudioElement} audio - Durdurulacak audio elementi
+ */
 function stopAudio(audio) {
     if (!audio) return;
     
@@ -80,7 +100,10 @@ function stopAudio(audio) {
     }
 }
 
-// Temizleme işlemleri
+/**
+ * Temizleme işlemleri
+ * Müziği durdur ve overlay'i kaldır
+ */
 function cleanup() {
     if (currentAudio) {
         stopAudio(currentAudio);
@@ -92,23 +115,31 @@ function cleanup() {
     }
 }
 
-// Overlay yönetimi
+/**
+ * Mola ekranı oluşturma
+ * Sağlık mesajı, zamanlayıcı ve müzik kontrollerini içeren overlay'i oluşturur
+ */
 function createOverlay() {
     if (globalOverlay) return;
 
+    // Ana overlay container
     globalOverlay = document.createElement('div');
     globalOverlay.className = 'health-overlay';
 
+    // İçerik container
     const content = document.createElement('div');
     content.className = 'overlay-content';
 
+    // Rastgele sağlık mesajı
     const message = document.createElement('div');
     message.className = 'message';
     message.textContent = healthMessages[Math.floor(Math.random() * healthMessages.length)];
 
+    // Zamanlayıcı
     const timer = document.createElement('div');
     timer.className = 'timer';
 
+    // Acil durum butonu
     const urgentButton = document.createElement('button');
     urgentButton.className = 'urgent-button';
     urgentButton.textContent = 'İşim Acil';
@@ -130,19 +161,23 @@ function createOverlay() {
             playMusic: true
         };
 
+        // Müzik ayarı açıksa müzik kontrollerini ekle
         if (settings.playMusic) {
             console.log('Müzik çalma aktif');
             const musicFiles = ['music1.ogg', 'music2.ogg'];
             const randomMusic = musicFiles[Math.floor(Math.random() * musicFiles.length)];
             const audioUrl = chrome.runtime.getURL(`audio/${randomMusic}`);
 
+            // Müzik kontrol container
             const musicContainer = document.createElement('div');
             musicContainer.className = 'music-container';
 
+            // Müzik etiketi
             const musicLabel = document.createElement('div');
             musicLabel.className = 'music-label';
             musicLabel.innerHTML = '🎵 Mola Müziği';
 
+            // Ses seviyesi kontrolü
             const volumeControl = document.createElement('input');
             volumeControl.type = 'range';
             volumeControl.min = '0';
@@ -150,8 +185,10 @@ function createOverlay() {
             volumeControl.value = '50';
             volumeControl.className = 'volume-slider';
 
+            // Müzik elementini oluştur
             currentAudio = createAudio(audioUrl);
             
+            // Ses seviyesi değiştiğinde
             volumeControl.onchange = (e) => {
                 if (currentAudio) {
                     currentAudio.volume = e.target.value / 100;
@@ -168,6 +205,7 @@ function createOverlay() {
 
         content.appendChild(urgentButton);
 
+        // Zorunlu bekleme aktifse
         if (settings.enforceWait) {
             setTimeout(() => {
                 urgentButton.classList.add('show');
@@ -176,11 +214,13 @@ function createOverlay() {
             urgentButton.classList.add('show');
         }
 
+        // Zamanlayıcıyı başlat
         chrome.runtime.sendMessage({
             action: "startBreakTimer",
             duration: settings.breakDuration
         });
 
+        // İstatistikleri güncelle
         chrome.runtime.sendMessage({
             action: "updateStats",
             type: "reminder"
@@ -190,6 +230,7 @@ function createOverlay() {
     globalOverlay.appendChild(content);
     document.body.appendChild(globalOverlay);
 
+    // Animasyon için bir frame bekle
     requestAnimationFrame(() => {
         globalOverlay.classList.add('show');
     });
