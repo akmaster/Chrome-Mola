@@ -59,20 +59,6 @@ function initializeState() {
 }
 
 /**
- * Tab aktiflik kontrolü
- * @param {number} tabId - Kontrol edilecek tab ID'si
- * @returns {Promise<boolean>} Tab'ın aktif olup olmadığı
- */
-async function isTabActive(tabId) {
-    try {
-        const tab = await chrome.tabs.get(tabId);
-        return tab.active;
-    } catch {
-        return false;
-    }
-}
-
-/**
  * Mola zamanlayıcısını başlat
  * @param {number} duration - Mola süresi (saniye)
  */
@@ -99,7 +85,7 @@ function startBreakTimer(duration) {
 
         if (state.currentBreakDuration <= 0) {
             clearInterval(state.breakTimer);
-            closeOverlay(false);
+            closeOverlay(false, true);  // İkinci parametre tamamlanan egzersizi belirtir
         }
     }, 1000);
 }
@@ -123,8 +109,9 @@ async function showOverlay() {
 /**
  * Mola ekranını kapat
  * @param {boolean} isUrgent - Acil durum butonu ile mi kapatıldı
+ * @param {boolean} isCompleted - Mola süresi tamamlandı mı
  */
-async function closeOverlay(isUrgent = false) {
+async function closeOverlay(isUrgent = false, isCompleted = false) {
     clearInterval(state.breakTimer);
     state.currentBreakDuration = 0;
     state.isBreakActive = false;
@@ -142,21 +129,14 @@ async function closeOverlay(isUrgent = false) {
         state.activeMusicTabId = null;
     }
 
-    resetWorkTimer();
-}
-
-/**
- * Müzik izni kontrolü
- * @param {number} tabId - İzin isteyen tab ID'si
- * @returns {boolean} İzin durumu
- */
-function handleMusicRequest(tabId) {
-    console.log('Müzik izni istendi:', tabId);
-    if (state.activeMusicTabId === null) {
-        state.activeMusicTabId = tabId;
-        return true;
+    // İstatistik güncelleme
+    if (isUrgent) {
+        updateStats('urgent');
+    } else if (isCompleted) {
+        updateStats('completed');
     }
-    return state.activeMusicTabId === tabId;
+
+    resetWorkTimer();
 }
 
 /**
@@ -169,7 +149,7 @@ function updateStats(type) {
     chrome.storage.sync.get(['stats'], function(result) {
         let stats = result.stats || {};
         
-        // Günlük istatistikleri kontrol et
+        // Günlük istatistikleri kontrol et ve sıfırla
         if (!stats.daily) stats.daily = {};
         if (!stats.daily[today]) {
             stats.daily[today] = {
@@ -206,17 +186,18 @@ function updateStats(type) {
         }
         
         // Eski verileri temizle (7 günden eski)
-        const now = new Date();
-        const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         
+        // Günlük istatistikleri temizle
         Object.keys(stats.daily).forEach(date => {
             if (new Date(date) < weekAgo) {
                 delete stats.daily[date];
             }
         });
         
-        // Haftalık istatistikleri sıfırla (gerekirse)
-        if (new Date(stats.weekly.startDate) < weekAgo) {
+        // Haftalık istatistikleri kontrol et ve gerekirse sıfırla
+        const weeklyStartDate = new Date(stats.weekly.startDate);
+        if (weeklyStartDate < weekAgo) {
             stats.weekly = {
                 totalReminders: 0,
                 urgentSkips: 0,
@@ -225,8 +206,10 @@ function updateStats(type) {
             };
         }
         
-        // Güncellenmiş istatistikleri kaydet
-        chrome.storage.sync.set({ stats: stats });
+        // Güncellenmiş istatist ikleri kaydet
+        chrome.storage.sync.set({ stats: stats }, () => {
+            console.log('İstatistikler güncellendi:', stats);
+        });
     });
 }
 
@@ -297,7 +280,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             
         case "startBreakTimer":
             startBreakTimer(request.duration);
-            if (sender.tab) state.activeOverlayTabId = sender.tab.id;
+            if (sender.tab) {
+                state.activeOverlayTabId = sender.tab.id;
+                // Hatırlatma istatistiğini ekle
+                updateStats('reminder');
+            }
             break;
             
         case "closeOverlay":
