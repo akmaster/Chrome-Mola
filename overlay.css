@@ -1,3 +1,4 @@
+/* Ana Overlay Yapısı */
 .health-overlay {
     position: fixed;
     top: 0;
@@ -14,6 +15,7 @@
     transform: scale(1.1);
 }
 
+/* Overlay İçerik Alanı */
 .overlay-content {
     background: rgba(26, 26, 46, 0.95);
     padding: 50px;
@@ -29,6 +31,7 @@
     transition: all 0.6s ease-out;
 }
 
+/* Mesaj Stili */
 .message {
     font-size: 24px;
     color: #e9ecef;
@@ -43,6 +46,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Sayaç Stili */
 .timer {
     font-size: 56px;
     color: #4ecca3;
@@ -51,6 +55,7 @@
     text-shadow: 0 0 10px rgba(78, 204, 163, 0.3);
 }
 
+/* İşim Acil Butonu */
 .urgent-button {
     background-color: #e94560;
     color: white;
@@ -79,6 +84,58 @@
     box-shadow: 0 6px 20px rgba(233, 69, 96, 0.3);
 }
 
+/* Slider Stilleri */
+.styled-slider {
+    width: 100%;
+    height: 5px;
+    border-radius: 5px;
+    background: #2d3436;
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* Slider Thumb (Kaydırıcı Düğmesi) */
+.styled-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #4ecca3;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.styled-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border: none;
+    border-radius: 50%;
+    background: #4ecca3;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* Slider Track (Kaydırma Çubuğu) */
+.styled-slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 5px;
+    background: #2d3436;
+    border-radius: 5px;
+    border: none;
+}
+
+.styled-slider::-moz-range-track {
+    width: 100%;
+    height: 5px;
+    background: #2d3436;
+    border-radius: 5px;
+    border: none;
+}
+
+/* Genel Görünürlük Sınıfları */
 .show {
     display: flex;
     opacity: 1;
@@ -94,7 +151,7 @@
     display: none !important;
 }
 
-/* Animasyon keyframes */
+/* Animasyonlar */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -117,7 +174,7 @@
     }
 }
 
-/* Çıkış animasyonları */
+/* Çıkış Animasyonları */
 .fade-out {
     opacity: 0;
     transform: scale(0.9);
@@ -130,14 +187,36 @@
     transition: all 0.4s ease-in-out;
 }
 
-/* Erişilebilirlik için focus stilleri */
+/* Erişilebilirlik */
 .urgent-button:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.5);
 }
 
-/* Klavye navigasyonu için focus-visible */
 .urgent-button:focus-visible {
     outline: 2px solid #fff;
     outline-offset: 2px;
+}
+
+/* Slider Hover ve Focus Efektleri */
+.styled-slider:hover::-webkit-slider-thumb {
+    background: #3db892;
+    transform: scale(1.1);
+}
+
+.styled-slider:hover::-moz-range-thumb {
+    background: #3db892;
+    transform: scale(1.1);
+}
+
+.styled-slider:focus {
+    outline: none;
+}
+
+.styled-slider:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px rgba(78, 204, 163, 0.3);
+}
+
+.styled-slider:focus::-moz-range-thumb {
+    box-shadow: 0 0 0 3px rgba(78, 204, 163, 0.3);
 }

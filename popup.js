@@ -1,3 +1,4 @@
+// popup.js
 const recommendations = {
     'quick-break': {
         name: 'Hızlı Mola',
@@ -43,6 +44,7 @@ const recommendations = {
     }
 };
 
+// İstatistik güncelleme
 function updateStatisticsDisplay(period = 'daily') {
     chrome.storage.sync.get(['stats'], function(result) {
         const stats = result.stats || {};
@@ -73,19 +75,26 @@ function updateStatisticsDisplay(period = 'daily') {
     });
 }
 
-function saveSettings(settings) {
-    return new Promise((resolve, reject) => {
-        chrome.storage.sync.set({ settings }, () => {
-            if (chrome.runtime.lastError) {
-                reject(chrome.runtime.lastError);
-            } else {
-                resolve();
-            }
+// Ayarları kaydet
+async function saveSettings(settings) {
+    try {
+        await new Promise((resolve, reject) => {
+            chrome.storage.sync.set({ settings }, () => {
+                if (chrome.runtime.lastError) {
+                    reject(chrome.runtime.lastError);
+                } else {
+                    resolve();
+                }
+            });
         });
-    });
+    } catch (error) {
+        console.error('Ayarlar kaydedilemedi:', error);
+        throw error;
+    }
 }
 
-function loadSettings() {
+// Ayarları yükle
+async function loadSettings() {
     return new Promise((resolve) => {
         chrome.storage.sync.get({
             settings: {
@@ -102,6 +111,7 @@ function loadSettings() {
     });
 }
 
+// UI güncelleme
 function updateUIWithSettings(settings) {
     document.getElementById('workDuration').value = settings.workDuration;
     document.getElementById('breakDuration').value = settings.breakDuration;
@@ -114,6 +124,7 @@ function updateUIWithSettings(settings) {
     document.getElementById('pauseVideos').checked = settings.pauseVideos;
 }
 
+// Kaydetme animasyonu
 function showSaveAnimation(button) {
     const originalText = button.textContent;
     const originalColor = button.style.backgroundColor;
@@ -127,6 +138,7 @@ function showSaveAnimation(button) {
     }, 1500);
 }
 
+// Ana başlatma fonksiyonu
 document.addEventListener('DOMContentLoaded', async function() {
     try {
         const settings = await loadSettings();
@@ -224,7 +236,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
 
     } catch (error) {
-        console.error('Popup initialization error:', error);
+        console.error('Popup başlatma hatası:', error);
         alert('Ayarlar yüklenirken bir hata oluştu.');
     }
 });

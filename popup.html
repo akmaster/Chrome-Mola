@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <style>
+        /* Temel Stiller */
         body {
             width: 350px;
             padding: 20px;
@@ -12,6 +13,7 @@
             margin: 0;
         }
 
+        /* Container Stili */
         .settings-container {
             background-color: #16213e;
             padding: 20px;
@@ -20,13 +22,20 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        h2 {
+        /* Başlık Stili */
+        h2, h3 {
             color: #4ecca3;
             margin-top: 0;
             margin-bottom: 20px;
             font-size: 18px;
         }
 
+        h3 {
+            font-size: 16px;
+            margin: 0 0 15px 0;
+        }
+
+        /* Form Elementleri */
         .setting-group {
             margin-bottom: 15px;
         }
@@ -38,6 +47,7 @@
             font-size: 14px;
         }
 
+        /* Input Stilleri */
         input[type="number"] {
             width: 100%;
             padding: 8px;
@@ -54,6 +64,7 @@
             box-shadow: 0 0 5px rgba(78, 204, 163, 0.3);
         }
 
+        /* İpucu Metni */
         .setting-hint {
             font-size: 11px;
             color: #adb5bd;
@@ -62,6 +73,7 @@
             font-style: italic;
         }
 
+        /* Checkbox Stili */
         .checkbox-wrapper {
             display: flex;
             align-items: center;
@@ -76,6 +88,7 @@
             accent-color: #4ecca3;
         }
 
+        /* Slider Container */
         .slider-container {
             background: rgba(78, 204, 163, 0.1);
             padding: 15px;
@@ -90,6 +103,7 @@
             margin-bottom: 10px;
         }
 
+        /* Slider Stilleri */
         .styled-slider {
             width: 100%;
             height: 5px;
@@ -97,6 +111,8 @@
             background: #2d3436;
             outline: none;
             -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
         }
 
         .styled-slider::-webkit-slider-thumb {
@@ -110,11 +126,33 @@
             transition: all 0.3s ease;
         }
 
-        .styled-slider::-webkit-slider-thumb:hover {
-            background: #3db892;
-            transform: scale(1.1);
+        .styled-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border: none;
+            border-radius: 50%;
+            background: #4ecca3;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
 
+        .styled-slider::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 5px;
+            background: #2d3436;
+            border-radius: 5px;
+            border: none;
+        }
+
+        .styled-slider::-moz-range-track {
+            width: 100%;
+            height: 5px;
+            background: #2d3436;
+            border-radius: 5px;
+            border: none;
+        }
+
+        /* Buton Stili */
         button {
             width: 100%;
             padding: 10px;
@@ -133,16 +171,17 @@
             box-shadow: 0 4px 15px rgba(78, 204, 163, 0.2);
         }
 
+        /* Bilgi Metni */
         .info-text {
             font-size: 12px;
             color: #adb5bd;
-            margin-top: 15px;
-            margin-bottom: 15px;
+            margin: 15px 0;
             text-align: center;
             padding-bottom: 15px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        /* İstatistikler Bölümü */
         .statistics {
             margin-top: 25px;
             padding: 20px;
@@ -151,12 +190,7 @@
             border: 1px solid rgba(78, 204, 163, 0.2);
         }
 
-        .statistics h3 {
-            color: #4ecca3;
-            font-size: 16px;
-            margin: 0 0 15px 0;
-        }
-
+        /* Periyot Seçici */
         .stat-period-selector {
             display: flex;
             gap: 10px;
@@ -170,8 +204,6 @@
             border: 1px solid rgba(78, 204, 163, 0.3);
             border-radius: 5px;
             color: #e9ecef;
-            cursor: pointer;
-            transition: all 0.3s ease;
         }
 
         .period-btn.active {
@@ -179,6 +211,7 @@
             color: #1a1a2e;
         }
 
+        /* İstatistik Öğeleri */
         .stat-container {
             display: flex;
             flex-direction: column;
@@ -210,17 +243,11 @@
             font-size: 14px;
         }
 
+        /* Tavsiyeler Bölümü */
         .recommendations {
             margin-top: 25px;
             padding-top: 20px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .recommendations h3 {
-            color: #4ecca3;
-            font-size: 16px;
-            margin-bottom: 15px;
-            margin-top: 0;
         }
 
         .recommendation-list {
@@ -270,6 +297,29 @@
         .recommendation-item .timing {
             color: #ced4da;
             font-size: 12px;
+        }
+
+        /* Hover ve Focus Efektleri */
+        .styled-slider::-webkit-slider-thumb:hover {
+            background: #3db892;
+            transform: scale(1.1);
+        }
+
+        .styled-slider::-moz-range-thumb:hover {
+            background: #3db892;
+            transform: scale(1.1);
+        }
+
+        .styled-slider:focus {
+            outline: none;
+        }
+
+        .styled-slider:focus::-webkit-slider-thumb {
+            box-shadow: 0 0 0 3px rgba(78, 204, 163, 0.3);
+        }
+
+        .styled-slider:focus::-moz-range-thumb {
+            box-shadow: 0 0 0 3px rgba(78, 204, 163, 0.3);
         }
     </style>
 </head>

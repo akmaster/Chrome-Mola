@@ -1,3 +1,4 @@
+// background.js
 let state = {
     activeMusicTabId: null,
     activeOverlayTabIds: new Set(),
@@ -5,6 +6,7 @@ let state = {
     currentBreakDuration: 0
 };
 
+// İlk kurulum
 function initializeState() {
     const today = new Date().toISOString().split('T')[0];
     const defaultStats = {
@@ -42,6 +44,7 @@ function initializeState() {
     });
 }
 
+// Zamanlayıcı yönetimi
 function startBreakTimer(duration) {
     state.currentBreakDuration = duration;
     clearInterval(state.breakTimer);
@@ -61,20 +64,15 @@ function startBreakTimer(duration) {
     }, 1000);
 }
 
-function broadcastToOverlayTabs(message) {
-    state.activeOverlayTabIds.forEach(tabId => {
-        chrome.tabs.sendMessage(tabId, message).catch(() => {
+// Tab yönetimi
+async function broadcastToOverlayTabs(message) {
+    for (const tabId of state.activeOverlayTabIds) {
+        try {
+            await chrome.tabs.sendMessage(tabId, message);
+        } catch (error) {
             state.activeOverlayTabIds.delete(tabId);
-        });
-    });
-}
-
-function resetWorkTimer() {
-    chrome.storage.sync.get(['settings'], function(result) {
-        if (result.settings && result.settings.workDuration) {
-            updateAlarm(result.settings.workDuration);
         }
-    });
+    }
 }
 
 function closeAllOverlays(isUrgent = false) {
@@ -89,9 +87,11 @@ function closeAllOverlays(isUrgent = false) {
     state.activeOverlayTabIds.clear();
     state.activeMusicTabId = null;
 
+    // Çalışma süresini resetle
     resetWorkTimer();
 }
 
+// Müzik yönetimi
 function handleMusicRequest(tabId) {
     if (state.activeMusicTabId === null) {
         state.activeMusicTabId = tabId;
@@ -100,6 +100,7 @@ function handleMusicRequest(tabId) {
     return state.activeMusicTabId === tabId;
 }
 
+// İstatistik yönetimi
 function updateStats(type) {
     const today = new Date().toISOString().split('T')[0];
     
@@ -139,6 +140,7 @@ function updateStats(type) {
                 break;
         }
         
+        // Eski verileri temizle
         const now = new Date();
         const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
         
@@ -161,6 +163,7 @@ function updateStats(type) {
     });
 }
 
+// Alarm yönetimi
 function updateAlarm(duration) {
     chrome.alarms.clear('healthReminder');
     chrome.alarms.create('healthReminder', {
@@ -168,6 +171,15 @@ function updateAlarm(duration) {
     });
 }
 
+function resetWorkTimer() {
+    chrome.storage.sync.get(['settings'], function(result) {
+        if (result.settings && result.settings.workDuration) {
+            updateAlarm(result.settings.workDuration);
+        }
+    });
+}
+
+// Event Listeners
 chrome.runtime.onInstalled.addListener(initializeState);
 
 chrome.tabs.onRemoved.addListener((tabId) => {
