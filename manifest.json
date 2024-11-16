@@ -6,7 +6,8 @@
   "permissions": [
     "alarms", 
     "storage",
-    "tabs"
+    "tabs",
+    "activeTab"
   ],
   "action": {
     "default_popup": "popup.html"
@@ -23,7 +24,6 @@
   ],
   "web_accessible_resources": [{
     "resources": ["audio/*"],
-    "matches": ["<all_urls>"],
-    "use_dynamic_url": true
+    "matches": ["<all_urls>"]
   }]
 }

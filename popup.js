@@ -77,36 +77,40 @@ function updateStatisticsDisplay(period = 'daily') {
 
 // Ayarları kaydet
 async function saveSettings(settings) {
-    try {
-        await new Promise((resolve, reject) => {
-            chrome.storage.sync.set({ settings }, () => {
-                if (chrome.runtime.lastError) {
-                    reject(chrome.runtime.lastError);
-                } else {
-                    resolve();
-                }
-            });
+    console.log('Ayarlar kaydediliyor:', settings);
+    return new Promise((resolve, reject) => {
+        chrome.storage.sync.set({ settings }, () => {
+            if (chrome.runtime.lastError) {
+                console.error('Ayar kaydetme hatası:', chrome.runtime.lastError);
+                reject(chrome.runtime.lastError);
+            } else {
+                console.log('Ayarlar başarıyla kaydedildi');
+                // Alarm süresini güncelle
+                chrome.runtime.sendMessage({
+                    action: "updateAlarm",
+                    workDuration: settings.workDuration
+                });
+                resolve();
+            }
         });
-    } catch (error) {
-        console.error('Ayarlar kaydedilemedi:', error);
-        throw error;
-    }
+    });
 }
 
 // Ayarları yükle
 async function loadSettings() {
     return new Promise((resolve) => {
-        chrome.storage.sync.get({
-            settings: {
-                workDuration: 0.5,
-                breakDuration: 20,
-                enforceWait: false,
-                urgentDelay: 5,
-                playMusic: false,
-                pauseVideos: true
-            }
-        }, function(result) {
-            resolve(result.settings);
+        const defaultSettings = {
+            workDuration: 0.5,
+            breakDuration: 20,
+            enforceWait: false,
+            urgentDelay: 5,
+            playMusic: true,  // Varsayılan olarak müzik açık
+            pauseVideos: true
+        };
+
+        chrome.storage.sync.get(['settings'], function(result) {
+            console.log('Yüklenen ayarlar:', result.settings || defaultSettings);
+            resolve(result.settings || defaultSettings);
         });
     });
 }
@@ -141,6 +145,7 @@ function showSaveAnimation(button) {
 // Ana başlatma fonksiyonu
 document.addEventListener('DOMContentLoaded', async function() {
     try {
+        console.log('Popup başlatılıyor...');
         const settings = await loadSettings();
         updateUIWithSettings(settings);
         
@@ -159,21 +164,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             div.dataset.tooltip = `Çalışma: ${rec.workMinutes} dk, Mola: ${rec.breakSeconds} ${rec.breakType}`;
             recommendationList.appendChild(div);
-        });
 
-        // Event listeners
-        document.getElementById('enforceWait').addEventListener('change', function() {
-            document.getElementById('waitTimeContainer').style.display = 
-                this.checked ? 'block' : 'none';
-        });
-
-        document.getElementById('urgentDelay').addEventListener('input', function() {
-            document.getElementById('urgentDelayValue').textContent = `${this.value} saniye`;
-        });
-
-        // Tavsiye tıklama işlevselliği
-        document.querySelectorAll('.recommendation-item').forEach(item => {
-            item.addEventListener('click', function() {
+            div.addEventListener('click', function() {
                 const recType = this.dataset.type;
                 const rec = recommendations[recType];
                 
@@ -183,6 +175,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                     document.getElementById('saveSettings').click();
                 }
             });
+        });
+
+        // Zorunlu Bekleme checkbox olayı
+        document.getElementById('enforceWait').addEventListener('change', function() {
+            document.getElementById('waitTimeContainer').style.display = 
+                this.checked ? 'block' : 'none';
+        });
+
+        // Slider değişim olayı
+        document.getElementById('urgentDelay').addEventListener('input', function() {
+            document.getElementById('urgentDelayValue').textContent = `${this.value} saniye`;
         });
 
         // Period butonları
@@ -213,25 +216,23 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
+            const newSettings = {
+                workDuration,
+                breakDuration,
+                enforceWait,
+                urgentDelay,
+                playMusic,
+                pauseVideos
+            };
+
+            console.log('Yeni ayarlar kaydediliyor:', newSettings);
+
             try {
-                await saveSettings({
-                    workDuration,
-                    breakDuration,
-                    enforceWait,
-                    urgentDelay,
-                    playMusic,
-                    pauseVideos
-                });
-
-                chrome.runtime.sendMessage({
-                    action: "updateAlarm",
-                    workDuration: workDuration
-                });
-
+                await saveSettings(newSettings);
                 showSaveAnimation(this);
             } catch (error) {
+                console.error('Ayarlar kaydedilemedi:', error);
                 alert('Ayarlar kaydedilirken bir hata oluştu.');
-                console.error('Settings save error:', error);
             }
         });
 

@@ -1,9 +1,10 @@
 // background.js
 let state = {
     activeMusicTabId: null,
-    activeOverlayTabIds: new Set(),
+    activeOverlayTabId: null,
     breakTimer: null,
-    currentBreakDuration: 0
+    currentBreakDuration: 0,
+    isBreakActive: false
 };
 
 // İlk kurulum
@@ -25,74 +26,102 @@ function initializeState() {
         }
     };
 
+    const defaultSettings = {
+        workDuration: 0.5,
+        breakDuration: 20,
+        enforceWait: false,
+        urgentDelay: 5,
+        playMusic: true,  // Varsayılan olarak müzik açık
+        pauseVideos: true
+    };
+
     chrome.storage.sync.get(['stats', 'settings'], function(result) {
         if (!result.stats) {
             chrome.storage.sync.set({ stats: defaultStats });
         }
         if (!result.settings) {
-            chrome.storage.sync.set({
-                settings: {
-                    workDuration: 0.5,
-                    breakDuration: 20,
-                    enforceWait: false,
-                    urgentDelay: 5,
-                    playMusic: false,
-                    pauseVideos: true
-                }
-            });
+            chrome.storage.sync.set({ settings: defaultSettings });
         }
     });
+}
+
+// Aktif tab kontrolü
+async function isTabActive(tabId) {
+    try {
+        const tab = await chrome.tabs.get(tabId);
+        return tab.active;
+    } catch {
+        return false;
+    }
 }
 
 // Zamanlayıcı yönetimi
 function startBreakTimer(duration) {
     state.currentBreakDuration = duration;
+    state.isBreakActive = true;
     clearInterval(state.breakTimer);
     
-    state.breakTimer = setInterval(() => {
+    state.breakTimer = setInterval(async () => {
         state.currentBreakDuration--;
         
-        broadcastToOverlayTabs({
-            action: "updateTimer",
-            seconds: state.currentBreakDuration
-        });
+        if (state.activeOverlayTabId) {
+            try {
+                await chrome.tabs.sendMessage(state.activeOverlayTabId, {
+                    action: "updateTimer",
+                    seconds: state.currentBreakDuration
+                });
+            } catch {
+                clearInterval(state.breakTimer);
+                state.activeOverlayTabId = null;
+                state.isBreakActive = false;
+            }
+        }
 
         if (state.currentBreakDuration <= 0) {
             clearInterval(state.breakTimer);
-            closeAllOverlays(false);
+            closeOverlay(false);
         }
     }, 1000);
 }
 
-// Tab yönetimi
-async function broadcastToOverlayTabs(message) {
-    for (const tabId of state.activeOverlayTabIds) {
-        try {
-            await chrome.tabs.sendMessage(tabId, message);
-        } catch (error) {
-            state.activeOverlayTabIds.delete(tabId);
+// Overlay yönetimi
+async function showOverlay() {
+    try {
+        const [activeTab] = await chrome.tabs.query({active: true, currentWindow: true});
+        if (activeTab) {
+            await chrome.tabs.sendMessage(activeTab.id, {action: "showOverlay"});
+            state.activeOverlayTabId = activeTab.id;
+            state.isBreakActive = true;
         }
+    } catch (error) {
+        console.warn('Overlay gösterme hatası:', error);
     }
 }
 
-function closeAllOverlays(isUrgent = false) {
+async function closeOverlay(isUrgent = false) {
     clearInterval(state.breakTimer);
     state.currentBreakDuration = 0;
+    state.isBreakActive = false;
     
-    broadcastToOverlayTabs({
-        action: "closeOverlay",
-        isUrgent: isUrgent
-    });
-    
-    state.activeOverlayTabIds.clear();
-    state.activeMusicTabId = null;
+    if (state.activeOverlayTabId) {
+        try {
+            await chrome.tabs.sendMessage(state.activeOverlayTabId, {
+                action: "closeOverlay",
+                isUrgent: isUrgent
+            });
+        } catch {
+            // Tab kapanmış olabilir, yoksay
+        }
+        state.activeOverlayTabId = null;
+        state.activeMusicTabId = null;
+    }
 
-    // Çalışma süresini resetle
     resetWorkTimer();
 }
 
 // Müzik yönetimi
 function handleMusicRequest(tabId) {
+    console.log('Müzik izni istendi:', tabId);
     if (state.activeMusicTabId === null) {
         state.activeMusicTabId = tabId;
         return true;
@@ -186,21 +215,29 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     if (tabId === state.activeMusicTabId) {
         state.activeMusicTabId = null;
     }
-    state.activeOverlayTabIds.delete(tabId);
+    if (tabId === state.activeOverlayTabId) {
+        state.activeOverlayTabId = null;
+        state.isBreakActive = false;
+    }
+});
+
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+    if (state.isBreakActive && state.activeOverlayTabId && 
+        state.activeOverlayTabId !== activeInfo.tabId) {
+        updateStats('urgent');
+        await closeOverlay(true);
+    }
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === 'healthReminder') {
-        chrome.tabs.query({}, function(tabs) {
-            tabs.forEach(tab => {
-                chrome.tabs.sendMessage(tab.id, {action: "showOverlay"});
-                state.activeOverlayTabIds.add(tab.id);
-            });
-        });
+        showOverlay();
     }
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('Mesaj alındı:', request);
+    
     switch (request.action) {
         case "requestMusicPermission":
             sendResponse({ canPlay: handleMusicRequest(sender.tab.id) });
@@ -212,24 +249,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             
         case "startBreakTimer":
             startBreakTimer(request.duration);
-            state.activeOverlayTabIds.add(sender.tab.id);
+            if (sender.tab) state.activeOverlayTabId = sender.tab.id;
             break;
             
-        case "closeAllOverlays":
-            closeAllOverlays(true);
+        case "closeOverlay":
+            closeOverlay(true);
             break;
             
         case "updateStats":
             updateStats(request.type);
-            break;
-            
-        case "registerOverlay":
-            state.activeOverlayTabIds.add(sender.tab.id);
-            sendResponse({ currentTimer: state.currentBreakDuration });
-            break;
-            
-        case "resetWorkTimer":
-            resetWorkTimer();
             break;
     }
     return true;
